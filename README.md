@@ -9,7 +9,7 @@ This repository contains our group project for **ISP543 (Knowledge Based Systems
 * **Class:** CS2594C
 * **Group:** Group 2
 * **Prepared For:** Madam Farzana Binti Zubaidi
-* **Submission Date:** 01/11/2026
+* **Class:** CS2594C
 
 ## Group Members
 | No. | Name | Student ID |
