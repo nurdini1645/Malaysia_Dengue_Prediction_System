@@ -130,7 +130,7 @@ TEXT = {
         "step2_desc": "Check the symptoms you are currently feeling.",
         "fever_bool": "Do you have a fever or feel hot?",
         "fever_days": "How many days have you had a fever? (Enter 0 if no fever)",
-        "max_temp": "Highest Body Temperature in °F (Normal is ~98.6°F, Fever is 100.4°F+. Enter 0 if not measured)",
+        "max_temp": "Highest Body Temperature in °C (Normal is ~37.0°C, Fever is 38.0°C+. Enter 0 if not measured)",
         "headache_bool": "Do you have a headache?",
         "headache_sev": "How bad is your headache? (0 = No pain, 10 = Worst pain)",
         "retro_pain": "Pain behind your eyes, especially when moving them (0 = None, 10 = Very painful)",
@@ -205,7 +205,7 @@ TEXT = {
         "step2_desc": "Tandakan gejala yang sedang anda alami sekarang.",
         "fever_bool": "Adakah anda mengalami demam atau badan terasa panas?",
         "fever_days": "Sudah berapa hari anda demam? (Masukkan 0 jika tiada demam)",
-        "max_temp": "Suhu Badan Tertinggi dalam °F (Normal ~98.6°F, Demam 100.4°F+. Masukkan 0 jika tidak disukat)",
+        "max_temp": "Suhu Badan Tertinggi dalam °C (Normal ~37.0°C, Demam 38.0°C+. Masukkan 0 jika tidak disukat)",
         "headache_bool": "Adakah anda mengalami sakit kepala?",
         "headache_sev": "Tahap kesakitan kepala anda (0 = Tiada sakit, 10 = Sangat sakit)",
         "retro_pain": "Sakit di belakang biji mata, terutama apabila menggerakkan mata (0 = Tiada, 10 = Sangat sakit)",
@@ -275,13 +275,13 @@ def classify_age_group(age: int, lang: str) -> str:
         return "Senior / Elderly (>60 years) — High Risk" if lang == "EN" else "Warga Emas (>60 tahun) — Risiko Tinggi"
 
 
-def classify_fever_status(max_temp_f: float, has_fever: bool, lang: str) -> str:
-    if not has_fever or max_temp_f == 0.0 or max_temp_f < 100.4:
-        return "No High Fever (<100.4°F / <38.0°C)" if lang == "EN" else "Tiada Demam Tinggi (<100.4°F / <38.0°C)"
-    elif max_temp_f <= 102.0:
-        return "Moderate Fever (100.4 – 102.0°F)" if lang == "EN" else "Demam Sederhana (100.4 – 102.0°F)"
+def classify_fever_status(max_temp_c: float, has_fever: bool, lang: str) -> str:
+    if not has_fever or max_temp_c == 0.0 or max_temp_c < 38.0:
+        return "No High Fever (<38.0°C)" if lang == "EN" else "Tiada Demam Tinggi (<38.0°C)"
+    elif max_temp_c <= 38.9:
+        return "Moderate Fever (38.0 – 38.9°C)" if lang == "EN" else "Demam Sederhana (38.0 – 38.9°C)"
     else:
-        return "High Fever (≥102.1°F / ≥39.0°C)" if lang == "EN" else "Demam Panas Tinggi (≥102.1°F / ≥39.0°C)"
+        return "High Fever (≥39.0°C)" if lang == "EN" else "Demam Panas Tinggi (≥39.0°C)"
 
 
 def classify_fever_phase(days: int, lang: str) -> str:
@@ -337,7 +337,7 @@ def evaluate_heuristics_and_triage(data: dict, lang: str) -> dict:
     stagnant_water = data["stagnant_water"]
 
     fever_days = data["fever_days"]
-    max_temp_f = data["max_temperature_f"]
+    max_temp_c = data["max_temperature_c"]
     fever_bool = data["fever_bool"]
 
     headache_sev = data["headache_severity"]
@@ -369,8 +369,8 @@ def evaluate_heuristics_and_triage(data: dict, lang: str) -> dict:
         fired_rules.append("H4 / Added H4: Household Dengue Exposure (14d) + Stagnant Water -> Environmental and exposure risk factors identified.")
     if early_nausea and early_abdominal_pain:
         fired_rules.append("H5 / Added H5: Early Nausea + Early Abdominal Pain -> Flag symptom combination for further assessment.")
-    if fever_days > 0 and max_temp_f > 0:
-        fired_rules.append("H6 / Added H6: Fever Days > 0 and Max Temperature recorded -> Include fever duration and temperature in assessment.")
+    if fever_days > 0 and max_temp_c > 0:
+        fired_rules.append("H6 / Added H6: Fever Days > 0 and Max Temperature (°C) recorded -> Include fever duration and temperature in assessment.")
     if headache_sev > 0 and muscle_pain > 0 and joint_pain > 0:
         fired_rules.append("H7 / Added H7: Headache Severity, Muscle Pain, and Joint Pain recorded -> Include pain symptoms in evaluation.")
     if early_fatigue and early_appetite_loss:
@@ -645,12 +645,12 @@ elif st.session_state.step == 2:
         max_value=30,
         value=st.session_state.get("fever_days", 2),
     )
-    max_temperature_f = st.number_input(
+    max_temperature_c = st.number_input(
         t["max_temp"],
         min_value=0.0,
-        max_value=110.0,
+        max_value=45.0,
         step=0.1,
-        value=float(st.session_state.get("max_temperature_f", 100.4)),
+        value=float(st.session_state.get("max_temperature_c", 38.0)),
     )
 
     headache_bool = st.checkbox(
@@ -688,7 +688,7 @@ elif st.session_state.step == 2:
 
     st.session_state.fever_bool = fever_bool
     st.session_state.fever_days = fever_days
-    st.session_state.max_temperature_f = max_temperature_f
+    st.session_state.max_temperature_c = max_temperature_c
     st.session_state.headache_bool = headache_bool
     st.session_state.headache_severity = headache_severity
     st.session_state.retro_orbital_pain = retro_orbital_pain
@@ -803,7 +803,7 @@ elif st.session_state.step == 4:
         "stagnant_water": ynu_map[st.session_state.get("stagnant_water_idx", 0)],
         "fever_bool": st.session_state.get("fever_bool", True),
         "fever_days": st.session_state.get("fever_days", 2),
-        "max_temperature_f": st.session_state.get("max_temperature_f", 100.4),
+        "max_temperature_c": st.session_state.get("max_temperature_c", 38.0),
         "headache_bool": st.session_state.get("headache_bool", False),
         "headache_severity": st.session_state.get("headache_severity", 0),
         "retro_orbital_pain": st.session_state.get("retro_orbital_pain", 0),
@@ -867,7 +867,7 @@ elif st.session_state.step == 4:
         },
         {
             t["col_item"]: "🌡️ Fever Level" if lang == "EN" else "🌡️ Tahap Demam",
-            t["col_status"]: classify_fever_status(payload["max_temperature_f"], payload["fever_bool"], lang),
+            t["col_status"]: classify_fever_status(payload["max_temperature_c"], payload["fever_bool"], lang),
         },
         {
             t["col_item"]: "📅 Fever Stage" if lang == "EN" else "📅 Fasa Demam",
